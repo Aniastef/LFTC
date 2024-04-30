@@ -2,11 +2,13 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include "utils.h"
 #include "ad.h"
 #include "parser.h"
 
 Token *iTk;		   // the iterator in the tokens list
 Token *consumedTk; // the last consumed token
+Symbol *owner = NULL;
 void tkerr(const char *fmt, ...);
 bool consume(int code);
 bool typeBase(Type *t);
@@ -125,7 +127,7 @@ bool unit()
 //* inseamna while
 bool structDef()
 {
-	Token *start = iTk; // stocam pozitia curenta a iTk in t pt a putea reveni la ea in caz ca nu e valid ce se intampla
+	Token *t = iTk; // stocam pozitia curenta a iTk in t pt a putea reveni la ea in caz ca nu e valid ce se intampla
 	if (consume(STRUCT))
 	{
 		if (consume(ID))
@@ -135,7 +137,9 @@ bool structDef()
 			{
 				Symbol *s = findSymbolInDomain(symTable, tkName->text);
 				if (s)
+				{
 					tkerr("symbol redefinition: %s", tkName->text);
+				}
 				s = addSymbolToDomain(symTable, newSymbol(tkName->text, SK_STRUCT));
 				s->type.tb = TB_STRUCT;
 				s->type.s = s;
@@ -153,19 +157,22 @@ bool structDef()
 				if (consume(RACC))
 				{
 					if (consume(SEMICOLON))
+					{
 						owner = NULL;
-					dropDomain();
-					return true;
-					else tkerr("Missing ; at structure declaration");
+						dropDomain();
+						return true;
+					}
+					else
+						tkerr("Missing ; at structure declaration");
 				}
 				else
 					tkerr("Missing } from structure declaration");
 			}
 		}
 		else
-			tkerr("Missing structure name");
+			tkerr("Missing identificator");
 	}
-	iTk = start;  // revine la pozitia initiala a iTk
+	iTk = t;	  // revine la pozitia initiala a iTk
 	return false; // nu e valid ce s-a intamplat
 }
 
@@ -227,7 +234,7 @@ bool varDef()
 	return false;
 }
 
-bool arrayDecl()
+bool arrayDecl(Type *t)
 {
 	Token *start = iTk;
 	if (consume(LBRACKET))
@@ -442,7 +449,7 @@ bool stm()
 }
 
 // acoladele {interior functie}
-bool stmCompound()
+bool stmCompound(bool newDomain)
 {
 	Token *start = iTk;
 	if (consume(LACC))

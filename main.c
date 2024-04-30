@@ -6,11 +6,13 @@
 
 int main()
 {
-    char *inbuffer = loadFile("./tests/testparser.c");
+    char *inbuffer = loadFile("./tests/testad.c");
     Token *tokens = tokenize(inbuffer);
+
+    pushDomain();
     parse(tokens);
-    free(inbuffer);
-    
+    showDomain(symTable, "global");
+    dropDomain();
 
     return 0;
 }
